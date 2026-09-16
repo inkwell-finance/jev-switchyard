@@ -28,6 +28,8 @@ die() {
 [[ -f "${TASK_LIST_FILE}" ]] || die "Task list not found: ${TASK_LIST_FILE}"
 
 mkdir -p "${RESULTS_DIR}"/{strong,weak,gemini,jev}
+python "${ROOT}/benchmark/typesafe/model_profiles.py" \
+    --output "${RESULTS_DIR}/model-profiles.json"
 docker network create "${NETWORK}" >/dev/null
 
 cleanup() {
@@ -45,6 +47,8 @@ docker run -d --rm \
     -v "${RESULTS_DIR}:/results" \
     "${ADAPTER_IMAGE}" \
     python /workspace/benchmark/typesafe/adapter.py \
+        --model-profiles /results/model-profiles.json \
+        --efficient-model moonshotai/kimi-k2.7-code \
         --log /results/jev-classifier.jsonl >/dev/null
 
 for _ in $(seq 1 30); do

@@ -19,6 +19,16 @@ validates. Current Switchyard routing uses the rule, boundary, and solve probabi
 This is a good fit for Jev's interface. It asks for two narrow decisions and composes them in code.
 It also avoids asking Jev to generate text, which the model does not support.
 
+Before an experiment, `model_profiles.py` caches the strong and efficient models' Artificial
+Analysis indices and pricing from OpenRouter's documented Benchmarks API. The adapter gives Jev the
+efficient model's exact profile as prior evidence. The benchmark values do not replace the
+task-specific judgment or the end-to-end experiment results.
+
+This path uses the existing `OPENROUTER_API_KEY`; it does not require an Artificial Analysis key.
+Artificial Analysis prohibits automated scraping in its website terms, so the experiment does not
+scrape its pages. The cached response preserves OpenRouter's source, timestamp, version, citation,
+and source URL. Generated snapshots live below the ignored results directory.
+
 ## Run a smoke test
 
 The adapter has no third-party runtime dependencies:
@@ -32,6 +42,14 @@ Run one live adapter request without starting Switchyard:
 
 ```bash
 python -m benchmark.typesafe.smoke
+```
+
+Refresh only the model evidence cache with:
+
+```bash
+python -m benchmark.typesafe.model_profiles \
+  --output benchmark/typesafe/results/model-profiles.json \
+  --max-age-hours 0
 ```
 
 The TypeSafe organization must have available API credits. An exhausted organization returns HTTP
@@ -136,5 +154,7 @@ Primary references:
 - https://docs.typesafe.ai/primitives
 - https://docs.typesafe.ai/primitives/noul
 - https://docs.typesafe.ai/confidence
+- https://openrouter.ai/docs/api/api-reference/benchmarks/list-benchmarks
+- https://artificialanalysis.ai/terms-of-use
 - https://github.com/NVIDIA-NeMo/Switchyard
 - https://github.com/NVIDIA-NeMo/Switchyard/blob/main/benchmark/README.md

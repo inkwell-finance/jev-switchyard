@@ -10,6 +10,7 @@ import pytest
 from benchmark.typesafe.adapter import (
     AdapterError,
     classifier_verdict,
+    load_model_profile,
     openai_response,
     task_state,
     typesafe_payload,
@@ -19,6 +20,12 @@ from benchmark.typesafe.compare import (
     estimated_cost,
     load,
     metric_means,
+)
+from benchmark.typesafe.model_profiles import (
+    ProfileError,
+    build_snapshot,
+    parse_model_mapping,
+    snapshot_matches,
 )
 
 
@@ -49,7 +56,8 @@ def typesafe_response(rule: str = "SUP-2", p_solve: float = 0.81) -> dict:
 
 
 def test_payload_uses_task_messages_and_two_atomic_questions() -> None:
-    payload = typesafe_payload(request(), "jev-latest")
+    profile = {"model_id": "moonshotai/kimi-k2.7-code", "coding_index": 60.8}
+    payload = typesafe_payload(request(), "jev-latest", profile)
 
     assert payload["state"]["task"] == [
         {"role": "user", "content": "Fix the failing parser tests."}
@@ -57,6 +65,7 @@ def test_payload_uses_task_messages_and_two_atomic_questions() -> None:
     assert set(payload["questions"]) == {"primary_rule", "p_solve"}
     assert payload["questions"]["primary_rule"]["type"] == "choice"
     assert payload["questions"]["p_solve"]["type"] == "noul"
+    assert payload["state"]["efficient_model_profile"] == profile
 
 
 def test_verdict_derives_a_consistent_boundary() -> None:
@@ -147,3 +156,54 @@ def test_cost_uses_cached_and_uncached_rates() -> None:
     }
 
     assert estimated_cost(stats, prices) == "$2.5504"
+
+
+def test_model_profile_snapshot_selects_exact_benchmark_id() -> None:
+    response = {
+        "meta": {
+            "source": "artificial-analysis",
+            "source_url": "https://artificialanalysis.ai/",
+            "as_of": "2026-09-16",
+            "version": "4.3",
+            "citation": "Artificial Analysis via OpenRouter",
+        },
+        "data": [
+            {
+                "source": "artificial-analysis",
+                "model_permaslug": "moonshotai/kimi-k2.7-code-20260612",
+                "display_name": "Kimi K2.7 Code",
+                "intelligence_index": 26.3,
+                "coding_index": 60.8,
+                "agentic_index": 22.5,
+                "pricing": {"prompt": "0.00000095", "completion": "0.000004"},
+            }
+        ],
+    }
+    snapshot = build_snapshot(
+        response,
+        {"moonshotai/kimi-k2.7-code": "moonshotai/kimi-k2.7-code-20260612"},
+    )
+    fixture = Path(__file__).parent / "fixtures" / "typesafe_model_profiles.json"
+
+    profile = load_model_profile(fixture, "moonshotai/kimi-k2.7-code")
+
+    assert snapshot["models"]["moonshotai/kimi-k2.7-code"]["coding_index"] == 60.8
+    assert snapshot_matches(
+        snapshot,
+        {"moonshotai/kimi-k2.7-code": "moonshotai/kimi-k2.7-code-20260612"},
+    )
+    assert not snapshot_matches(snapshot, {"other/model": "other/model-20260101"})
+    assert profile["coding_index"] == 60.8
+    assert profile["benchmark_source"]["citation"] == "Artificial Analysis via OpenRouter"
+
+
+def test_model_profile_helpers_reject_ambiguous_or_missing_models() -> None:
+    assert parse_model_mapping("route/model=benchmark/model-20260101") == (
+        "route/model",
+        "benchmark/model-20260101",
+    )
+    with pytest.raises(ProfileError, match="not found"):
+        build_snapshot(
+            {"meta": {}, "data": []},
+            {"route/model": "missing/model"},
+        )

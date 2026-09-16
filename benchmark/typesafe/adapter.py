@@ -49,15 +49,30 @@ BOUNDARY = {
 SUCCESS_QUESTION = (
     "On one fresh run under the actual harness, tools, and budget, will the efficient "
     "coding agent complete the whole task correctly as judged by the final verifier? "
-    "Estimate the probability of whole-task success. Use only `task` and "
-    "`efficient_agent_capability_card`; do not assume hidden state, tools, validators, "
-    "documentation, access, or future work habits. Missing information should limit extreme "
-    "estimates but is not evidence for exactly 0.5."
+    "Estimate the probability of whole-task success. Use only `task`, "
+    "`efficient_agent_capability_card`, and `efficient_model_profile` when that profile is "
+    "present. Benchmark scores are broad prior evidence, not a task-specific success rate. "
+    "Do not assume hidden state, tools, validators, documentation, access, or future work "
+    "habits. Missing information should limit extreme estimates but is not evidence for "
+    "exactly 0.5."
 )
 
 
 class AdapterError(Exception):
     """A request cannot be converted into a valid classifier response."""
+
+
+def load_model_profile(path: Path, model_id: str) -> dict[str, Any]:
+    """Load one exact model profile and its benchmark provenance."""
+    try:
+        snapshot = json.loads(path.read_text(encoding="utf-8"))
+        profile = snapshot["models"][model_id]
+        source = snapshot["source"]
+    except (OSError, KeyError, TypeError, json.JSONDecodeError) as error:
+        raise AdapterError(f"invalid model profile snapshot: {error}") from error
+    if not isinstance(profile, dict) or not isinstance(source, dict):
+        raise AdapterError("invalid model profile snapshot: profile and source must be objects")
+    return {"model_id": model_id, **profile, "benchmark_source": source}
 
 
 def _text_content(content: Any) -> str:
@@ -74,7 +89,9 @@ def _text_content(content: Any) -> str:
     return "\n".join(part for part in parts if part)
 
 
-def task_state(openai_request: dict[str, Any]) -> dict[str, Any]:
+def task_state(
+    openai_request: dict[str, Any], efficient_model_profile: dict[str, Any] | None = None
+) -> dict[str, Any]:
     """Keep the classifier-visible conversation and the qualitative capability card."""
     messages = openai_request.get("messages")
     if not isinstance(messages, list):
@@ -89,17 +106,24 @@ def task_state(openai_request: dict[str, Any]) -> dict[str, Any]:
         task.append({"role": role, "content": _text_content(message.get("content", ""))})
     if not task:
         raise AdapterError("classifier request has no non-system task messages")
-    return {
+    state = {
         "task": task,
         "efficient_agent_capability_card": RULES,
     }
+    if efficient_model_profile is not None:
+        state["efficient_model_profile"] = efficient_model_profile
+    return state
 
 
-def typesafe_payload(openai_request: dict[str, Any], model: str) -> dict[str, Any]:
+def typesafe_payload(
+    openai_request: dict[str, Any],
+    model: str,
+    efficient_model_profile: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     """Translate a Switchyard capability-classifier request to two atomic Jev questions."""
     return {
         "model": model,
-        "state": task_state(openai_request),
+        "state": task_state(openai_request, efficient_model_profile),
         "questions": {
             "primary_rule": {
                 "type": "choice",
@@ -181,16 +205,25 @@ def openai_response(
 
 class TypeSafeUpstream:
     def __init__(
-        self, api_key: str, url: str, model: str, timeout: float, max_retries: int
+        self,
+        api_key: str,
+        url: str,
+        model: str,
+        timeout: float,
+        max_retries: int,
+        efficient_model_profile: dict[str, Any] | None = None,
     ) -> None:
         self.api_key = api_key
         self.url = url
         self.model = model
         self.timeout = timeout
         self.max_retries = max_retries
+        self.efficient_model_profile = efficient_model_profile
 
     def classify(self, request: dict[str, Any]) -> dict[str, Any]:
-        payload = json.dumps(typesafe_payload(request, self.model)).encode("utf-8")
+        payload = json.dumps(
+            typesafe_payload(request, self.model, self.efficient_model_profile)
+        ).encode("utf-8")
         upstream = urllib.request.Request(
             self.url,
             data=payload,
@@ -310,16 +343,31 @@ def main() -> None:
     parser.add_argument("--timeout", type=float, default=30.0)
     parser.add_argument("--max-retries", type=int, default=2)
     parser.add_argument("--log", type=Path)
+    parser.add_argument("--model-profiles", type=Path)
+    parser.add_argument("--efficient-model", default="moonshotai/kimi-k2.7-code")
     args = parser.parse_args()
     if args.max_retries < 0:
         parser.error("--max-retries must be nonnegative")
     api_key = os.environ.get("TYPESAFE_API_KEY", "").strip()
     if not api_key:
         parser.error("TYPESAFE_API_KEY is required")
+    try:
+        efficient_model_profile = (
+            load_model_profile(args.model_profiles, args.efficient_model)
+            if args.model_profiles
+            else None
+        )
+    except AdapterError as error:
+        parser.error(str(error))
     server = AdapterServer(
         (args.host, args.port),
         TypeSafeUpstream(
-            api_key, args.typesafe_url, args.model, args.timeout, args.max_retries
+            api_key,
+            args.typesafe_url,
+            args.model,
+            args.timeout,
+            args.max_retries,
+            efficient_model_profile,
         ),
         args.log,
     )
