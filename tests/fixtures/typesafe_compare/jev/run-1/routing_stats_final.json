@@ -1,0 +1,14 @@
+{
+  "models": {"weak": {"calls": 3}, "strong": {"calls": 1}},
+  "routing_overhead": {"p50_ms": 110.0, "p99_ms": 220.0},
+  "classifier": {
+    "models": {
+      "jev-latest": {
+        "calls": 4,
+        "errors": 0,
+        "total_tokens": 400,
+        "model_call_latency": {"p50_ms": 100.0}
+      }
+    }
+  }
+}
