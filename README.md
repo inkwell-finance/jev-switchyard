@@ -6,13 +6,78 @@
 
 **Switchyard routes each LLM call to the cheapest model that can still do the job. Without changing a line of your agent.**
 
-**[Get started →](#get-started)**
+**[Run the Jev experiment →](#jev-classifier-experiment)** · **[Use upstream Switchyard →](#get-started)**
+
+## Jev classifier experiment
+
+This repository is an experimental fork of
+[NVIDIA NeMo Switchyard](https://github.com/NVIDIA-NeMo/Switchyard). It tests whether
+[TypeSafe Jev](https://typesafe.ai/) can replace the generative LLM used for Switchyard's
+capability-classifier routing decision.
+
+Jev receives the task, a qualitative capability card, and a profile of the efficient model. It
+returns two typed judgments:
+
+- the rule that best describes the task's hardest requirement;
+- the probability that the efficient coding agent completes the whole task.
+
+Switchyard uses that result to choose between Kimi K2.7 Code and Claude Opus 4.7. The completion
+calls still go through OpenRouter; Jev handles only the routing judgment.
+
+```mermaid
+flowchart LR
+    T["Agent task"] --> J["Jev typed judgment"]
+    B["OpenRouter benchmark profile"] --> J
+    J --> S["Switchyard route"]
+    S --> K["Kimi K2.7 Code"]
+    S --> O["Claude Opus 4.7"]
+```
+
+The model profile comes from OpenRouter's documented Benchmarks API. It includes Artificial
+Analysis coding, agentic, and intelligence indices plus pricing. Generated snapshots are cached
+under an ignored results directory. This repository does not scrape Artificial Analysis.
+
+### Run a smoke test
+
+Set the two API keys in your environment. Do not put them in a committed configuration file.
+
+```bash
+export TYPESAFE_API_KEY="..."
+export OPENROUTER_API_KEY="..."
+
+python -m benchmark.typesafe.model_profiles \
+  --output benchmark/typesafe/results/model-profiles.json
+
+python -m benchmark.typesafe.smoke \
+  --model-profiles benchmark/typesafe/results/model-profiles.json
+```
+
+The OpenRouter profile cache works without an Artificial Analysis API key. The TypeSafe account
+must have API credits for the live Jev request.
+
+### Run the controlled comparison
+
+After preparing the Harbor dataset described in [`benchmark/README.md`](benchmark/README.md):
+
+```bash
+bash benchmark/typesafe/run_experiment.sh
+```
+
+The runner compares fixed strong, fixed weak, Gemini-classified, and Jev-classified conditions.
+The checked-in 20-task subset is a smoke test. Use repeated runs over the full task list before
+drawing model-quality or cost conclusions. See the
+[`benchmark/typesafe` guide](benchmark/typesafe/README.md) for methodology, metrics, and current
+limitations.
+
+This integration is a research prototype. Its translation and comparison helpers have focused
+unit coverage, and the OpenRouter profile refresh has been tested live. The complete Harbor and
+TypeSafe experiment still needs to be run with funded provider accounts.
 
 ![Accuracy versus total cost on Terminal-Bench 2.1. Switchyard's staged, escalation, and classifier routes reach 71-76% accuracy for 13-30% less than the Opus 4.8 baseline, while single fixed models stay below 56%.](assets/benchmark-accuracy-vs-cost.svg)
 
 _\*Total cost based on average ISP token cost_
 
-## What is Switchyard
+## What is upstream Switchyard
 
 Switchyard picks which model serves each LLM call.
 

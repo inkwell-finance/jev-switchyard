@@ -41,10 +41,13 @@ python benchmark/typesafe/adapter.py --host 127.0.0.1 --port 8090
 Run one live adapter request without starting Switchyard:
 
 ```bash
-python -m benchmark.typesafe.smoke
+python -m benchmark.typesafe.model_profiles \
+  --output benchmark/typesafe/results/model-profiles.json
+python -m benchmark.typesafe.smoke \
+  --model-profiles benchmark/typesafe/results/model-profiles.json
 ```
 
-Refresh only the model evidence cache with:
+Force a refresh of only the model evidence cache with:
 
 ```bash
 python -m benchmark.typesafe.model_profiles \

@@ -12,8 +12,9 @@ import os
 import threading
 import urllib.error
 import urllib.request
+from pathlib import Path
 
-from benchmark.typesafe.adapter import AdapterServer, TypeSafeUpstream
+from benchmark.typesafe.adapter import AdapterServer, TypeSafeUpstream, load_model_profile
 
 
 def main() -> int:
@@ -26,10 +27,17 @@ def main() -> int:
         ),
     )
     parser.add_argument("--model", default="jev-latest")
+    parser.add_argument("--model-profiles", type=Path)
+    parser.add_argument("--efficient-model", default="moonshotai/kimi-k2.7-code")
     args = parser.parse_args()
     api_key = os.environ.get("TYPESAFE_API_KEY", "").strip()
     if not api_key:
         parser.error("TYPESAFE_API_KEY is required")
+    efficient_model_profile = (
+        load_model_profile(args.model_profiles, args.efficient_model)
+        if args.model_profiles
+        else None
+    )
 
     server = AdapterServer(
         ("127.0.0.1", 0),
@@ -39,6 +47,7 @@ def main() -> int:
             args.model,
             30.0,
             2,
+            efficient_model_profile,
         ),
         None,
     )
