@@ -66,6 +66,9 @@ ipython_config.py
 
 # Environments
 .env
+.env.*
+!.env.example
+!.env.template
 .venv
 .venv-vllm
 env/
@@ -120,6 +123,12 @@ rl_data/
 secrets/*
 !secrets/secrets.template.json
 !secrets/README.md
+*.pem
+*.key
+*.p12
+*.pfx
+credentials.json
+service-account*.json
 
 # Temporary test data (keep README)
 tmp/*
