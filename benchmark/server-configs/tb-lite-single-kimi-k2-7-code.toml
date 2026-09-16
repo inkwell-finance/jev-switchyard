@@ -16,4 +16,3 @@ llm_client = "openrouter"
 id = "tb-lite-single-kimi-k2-7-code"
 type = "passthrough"
 target = "primary"
-
