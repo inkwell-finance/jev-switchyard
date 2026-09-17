@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2026 Inkwell Finance, Inc. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 
 """Cache OpenRouter benchmark evidence for the TypeSafe routing experiment."""

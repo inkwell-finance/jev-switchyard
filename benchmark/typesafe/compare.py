@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2026 Inkwell Finance, Inc. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 
 """Compare fixed, LLM-classifier, and Jev-classifier Harbor runs."""
