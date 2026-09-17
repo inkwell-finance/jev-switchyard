@@ -142,6 +142,9 @@ Use two complementary evaluations:
 
 The 20-task subset is a smoke test. It is too small for a reliable quality claim.
 
+An enriched live Jev smoke request using the cached OpenRouter model profile passed on September
+16, 2026. This validates credentials and the request/response path, not routing quality.
+
 ## Current limits
 
 - This adapter implements Switchyard's built-in capability-classifier contract only.

@@ -70,8 +70,8 @@ drawing model-quality or cost conclusions. See the
 limitations.
 
 This integration is a research prototype. Its translation and comparison helpers have focused
-unit coverage, and the OpenRouter profile refresh has been tested live. The complete Harbor and
-TypeSafe experiment still needs to be run with funded provider accounts.
+unit coverage. The OpenRouter profile refresh and an enriched live Jev smoke request have passed.
+The complete Harbor comparison still needs to be run before drawing routing-quality conclusions.
 
 ![Accuracy versus total cost on Terminal-Bench 2.1. Switchyard's staged, escalation, and classifier routes reach 71-76% accuracy for 13-30% less than the Opus 4.8 baseline, while single fixed models stay below 56%.](assets/benchmark-accuracy-vs-cost.svg)
 
