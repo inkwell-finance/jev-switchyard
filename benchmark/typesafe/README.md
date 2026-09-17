@@ -64,11 +64,30 @@ that base URL to `http://127.0.0.1:8090/v1`, or use the checked-in `-local.toml`
 
 ## Run the controlled comparison
 
-Prepare the Harbor dataset and patch described in `benchmark/README.md`, then set both keys:
+On a Linux host with Docker, Docker Compose, and `uv`, export both keys and run the one-time setup:
 
 ```bash
 export TYPESAFE_API_KEY="..."
 export OPENROUTER_API_KEY="..."
+bash benchmark/typesafe/setup_eval_host.sh
+```
+
+The setup validates the host, installs the development environment, applies the required Harbor
+patch, prepares the closed-book dataset when absent, and caches the model profiles. It never prints
+either key.
+
+Run the two-task pilot before spending money on the checked-in 20-task subset:
+
+```bash
+bash benchmark/typesafe/run_pilot.sh
+```
+
+The pilot uses one easy task and one hard task with concurrency two and one retry. It runs all four
+conditions and writes to a timestamped ignored results directory.
+
+After the pilot artifacts and cleanup look correct, run the 20-task comparison:
+
+```bash
 bash benchmark/typesafe/run_experiment.sh
 ```
 

@@ -1,0 +1,3 @@
+# One easy and one hard task for validating the complete experiment path.
+broken-python
+application-debug

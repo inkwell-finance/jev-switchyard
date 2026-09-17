@@ -57,7 +57,17 @@ must have API credits for the live Jev request.
 
 ### Run the controlled comparison
 
-After preparing the Harbor dataset described in [`benchmark/README.md`](benchmark/README.md):
+On a Linux host with Docker, Docker Compose, and `uv`, prepare the environment and run the two-task
+pilot first:
+
+```bash
+export TYPESAFE_API_KEY="..."
+export OPENROUTER_API_KEY="..."
+bash benchmark/typesafe/setup_eval_host.sh
+bash benchmark/typesafe/run_pilot.sh
+```
+
+After the pilot succeeds, run the checked-in 20-task comparison:
 
 ```bash
 bash benchmark/typesafe/run_experiment.sh
